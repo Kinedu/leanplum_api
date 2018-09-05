@@ -3,6 +3,8 @@ module LeanplumApi
     # API Command Constants
     SET_USER_ATTRIBUTES = 'setUserAttributes'.freeze
     SET_DEVICE_ATTRIBUTES = 'setDeviceAttributes'.freeze
+    SET_TRAFFIC_SOURCE_INFO = 'setTrafficSourceInfo'.freeze
+
     TRACK = 'track'.freeze
 
     # Data export related constants
@@ -22,6 +24,10 @@ module LeanplumApi
       track_multi(device_attributes: device_attributes, options: options)
     end
 
+    def set_traffic_source_attributes(traffic_source_attributes,options = {})
+       track_multi(traffic_source_attributes: traffic_source_attributes, options: options)
+    end
+
     def track_events(events, options = {})
       track_multi(events: events, options: options)
     end
@@ -30,11 +36,12 @@ module LeanplumApi
     # at the same time, batched together like leanplum recommends.
     # Set the :force_anomalous_override option to catch warnings from leanplum
     # about anomalous events and force them to not be considered anomalous.
-    def track_multi(events: nil, user_attributes: nil, device_attributes: nil, options: {})
+    def track_multi(events: nil, user_attributes: nil, device_attributes: nil,traffic_source_attributes: nil, options: {})
       events = Array.wrap(events)
 
       request_data = events.map { |h| build_event_attributes_hash(h.dup, options) } +
                      Array.wrap(user_attributes).map { |h| build_user_attributes_hash(h.dup) } +
+                     Array.wrap(traffic_source_attributes).map { |h| build_traffic_source_attributes_hash(h.dup) } +
                      Array.wrap(device_attributes).map { |h| build_device_attributes_hash(h.dup) }
 
       response = production_connection.multi(request_data)
@@ -154,6 +161,16 @@ module LeanplumApi
 
       user_attr_hash[:userAttributes] = fix_iso8601(user_hash)
       user_attr_hash
+    end
+
+    # build a traffic source attributes hash
+    # @param [Hash] traffic_source_hash traffic source attributes to set into LP device
+    def build_traffic_source_attributes_hash(traffic_source_hash)
+      traffic_source_hash = fix_iso8601(traffic_source_hash)
+      extract_user_id_or_device_id_hash!(traffic_source_hash).merge(
+        action: SET_TRAFFIC_SOURCE_INFO,
+        trafficSource: traffic_source_hash
+      )
     end
 
     # build a user attributes hash

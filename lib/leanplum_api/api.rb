@@ -43,7 +43,7 @@ module LeanplumApi
                      Array.wrap(user_attributes).map { |h| build_user_attributes_hash(h.dup) } +
                      Array.wrap(traffic_source_attributes).map { |h| build_traffic_source_attributes_hash(h.dup) } +
                      Array.wrap(device_attributes).map { |h| build_device_attributes_hash(h.dup) }
-
+                     
       response = production_connection.multi(request_data)
       force_anomalous_override(response, events) if options[:force_anomalous_override]
 
@@ -195,8 +195,8 @@ module LeanplumApi
       event.merge!(currencyCode: event_hash.delete(:currency_code)) if event_hash[:currency_code]
       event.merge!(value: event_hash.delete(:value).to_f) if event_hash[:value]
       event.merge!(allowOffline: true) if options[:allow_offline]
-
-      event_hash.keys.size > 0 ? event.merge(params: event_hash.symbolize_keys ) : event
+     
+      event_hash.keys.size > 0 ? event.merge!(params: event_hash.symbolize_keys ) : event
     end
 
     # Leanplum's engineering team likes to break their API and or change stuff without warning (often)

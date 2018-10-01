@@ -5,6 +5,8 @@ module LeanplumApi
     SET_DEVICE_ATTRIBUTES = 'setDeviceAttributes'.freeze
     SET_TRAFFIC_SOURCE_INFO = 'setTrafficSourceInfo'.freeze
 
+    SEND_MESSAGE = 'sendMessage'.freeze
+
     TRACK = 'track'.freeze
 
     # Data export related constants
@@ -32,18 +34,23 @@ module LeanplumApi
       track_multi(events: events, options: options)
     end
 
+    def send_message(message_attributes, options = {})
+      track_multi(message_attributes: message_attributes, options: options)
+    end
+
     # This method is for tracking events and/or updating user and/or device attributes
     # at the same time, batched together like leanplum recommends.
     # Set the :force_anomalous_override option to catch warnings from leanplum
     # about anomalous events and force them to not be considered anomalous.
-    def track_multi(events: nil, user_attributes: nil, device_attributes: nil,traffic_source_attributes: nil, options: {})
+    def track_multi(events: nil, user_attributes: nil, device_attributes: nil,traffic_source_attributes: nil, message_attributes: nil , options: {})
       events = Array.wrap(events)
 
       request_data = events.map { |h| build_event_attributes_hash(h.dup, options) } +
                      Array.wrap(user_attributes).map { |h| build_user_attributes_hash(h.dup) } +
                      Array.wrap(traffic_source_attributes).map { |h| build_traffic_source_attributes_hash(h.dup) } +
-                     Array.wrap(device_attributes).map { |h| build_device_attributes_hash(h.dup) }
-                     
+                     Array.wrap(device_attributes).map { |h| build_device_attributes_hash(h.dup) } +
+                     Array.wrap(message_attributes).map { |h| build_message_attributes_hash(h.dup) }
+
       response = production_connection.multi(request_data)
       force_anomalous_override(response, events) if options[:force_anomalous_override]
 
@@ -147,6 +154,12 @@ module LeanplumApi
       user_id ? { userId: user_id } : { deviceId: device_id }
     end
 
+    def extract_message_id!(hash)
+      message_id = hash.delete(:message_id) || hash.delete(:messageId)
+      fail "No message_id in hash #{hash}" unless message_id
+      { messageId: message_id }
+    end
+
     # build a user attributes hash
     # @param [Hash] user_hash user attributes to set into LP user
     def build_user_attributes_hash(user_hash)
@@ -197,6 +210,17 @@ module LeanplumApi
       event.merge!(allowOffline: true) if options[:allow_offline]
      
       event_hash.keys.size > 0 ? event.merge!(params: event_hash.symbolize_keys ) : event
+    end
+
+    # build message params hash
+    # @param [Hash] message_hash params to send into message
+    def build_message_attributes_hash(message_hash)
+      message = extract_message_id!(message_hash).merge(extract_user_id_or_device_id_hash!(message_hash).merge(
+        action: SEND_MESSAGE
+      ))
+      message.merge!(values: message_hash.delete(:values)) if message_hash[:values]
+      message.merge!(createDisposition: message_hash[:createDisposition] || "CreateNever" )
+      message.merge!(force: message_hash[:force] || "false" )
     end
 
     # Leanplum's engineering team likes to break their API and or change stuff without warning (often)

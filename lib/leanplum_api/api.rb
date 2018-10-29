@@ -219,7 +219,7 @@ module LeanplumApi
         action: SEND_MESSAGE
       ))
       message.merge!(values: message_hash.delete(:values)) if message_hash[:values]
-      message.merge!(createDisposition: message_hash[:createDisposition] || "CreateNever" )
+      message.merge!(createDisposition: message_hash[:createDisposition] || "CreateIfNeeded" )
       message.merge!(force: message_hash[:force] || "false" )
     end
 

@@ -121,6 +121,10 @@ module LeanplumApi
       development_connection.multi_dev(request_data)
     end
 
+    def get_unsubscribe_categories
+      content_read_only_connection.get(action: 'getUnsubscribeCategories').first['categories']
+    end
+
     private
 
     def production_connection
@@ -171,6 +175,11 @@ module LeanplumApi
         user_attr_hash[:events] = user_hash.delete(:events)
         user_attr_hash[:events].each { |k, v| user_attr_hash[:events][k] = fix_seconds_since_epoch(v) }
       end
+
+      user_attr_hash[:unsubscribeChannelsToAdd] = user_hash.delete(:unsubscribeChannelsToAdd) if user_hash.key?(:unsubscribeChannelsToAdd)
+      user_attr_hash[:unsubscribeChannelsToRemove] = user_hash.delete(:unsubscribeChannelsToRemove) if user_hash.key?(:unsubscribeChannelsToRemove)
+      user_attr_hash[:unsubscribeCategoriesToAdd] = user_hash.delete(:unsubscribeCategoriesToAdd) if user_hash.key?(:unsubscribeCategoriesToAdd)
+      user_attr_hash[:unsubscribeCategoriesToRemove] = user_hash.delete(:unsubscribeCategoriesToRemove) if user_hash.key?(:unsubscribeCategoriesToRemove)
 
       user_attr_hash[:userAttributes] = fix_iso8601(user_hash)
       user_attr_hash
